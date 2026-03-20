@@ -1,0 +1,84 @@
+# 桥梁裂纹智能检测系统配置文件
+# Bridge Crack Identification System Configuration
+
+# ============================================
+# 仿真参数 (Simulation Parameters)
+# ============================================
+simulation:
+  # 车辆参数
+  mv: 5000          # 车辆质量 (kg) - 增加质量比
+  kv: 100000        # 车辆悬架刚度 (N/m)
+  cv: 5000          # 车辆悬架阻尼系数 (N/(m/s)) - 增加阻尼
+  V: 5              # 车辆速度 (m/s) - 降低速度
+  
+  # 桥梁参数
+  L: 20             # 桥梁长度 (m) - 缩短桥梁
+  E: 3.0e10         # 桥梁弹性模量 (Pa)
+  I: 0.1            # 桥梁惯性矩 (m^4)
+  m: 400            # 单位长度质量 (kg/m)
+  EL: 20            # 桥梁离散单元数量
+  depth: 0.8        # 梁深 (m)
+  width: 0.25       # 梁宽 (m)
+  
+  # 模态参数
+  n_modes: 3        # 模态数量 - 减少
+  kexi: 0.1         # 阻尼比 - 大幅增加
+  
+  # 分析参数
+  deltat: 0.005     # 时间步长 (s)
+  gamma: 0.5        # Newmark-beta gamma
+  beta: 0.25        # Newmark-beta beta
+  
+  # 裂纹参数范围
+  crack_position_range: [0, 20]   # 裂纹位置范围 (m)
+  crack_depth_range: [0.01, 0.2] # 裂纹深度比范围
+
+  # 路面等级（单一等级，用于所有样本）
+  road_type: 'b'
+
+# ============================================
+# 数据生成参数 (Data Generation)
+# ============================================
+data:
+  n_samples: 10000    # 样本数量
+  train_ratio: 0.7   # 训练集比例
+  val_ratio: 0.15    # 验证集比例
+  seed: 42           # 随机种子
+  
+# ============================================
+# 神经网络参数 (Neural Network)
+# ============================================
+model:
+  # 网络结构
+  input_dim: null    # 输入维度（从数据自动获取）
+  hidden_dims: [128, 64, 32]  # 隐藏层维度
+  output_dim: 2      # 输出维度 (位置, 深度)
+  
+  # 激活函数
+  activation: 'relu'  # relu, sigmoid, tanh, leaky_relu
+  
+  # 训练参数
+  lr: 0.01          # 学习率
+  lambda_reg: 0.0001  # L2正则化系数
+  epochs: 200       # 训练轮数
+  batch_size: 32    # 批量大小
+  
+  # 早停
+  early_stopping_patience: 20
+  
+# ============================================
+# 评估参数 (Evaluation)
+# ============================================
+evaluation:
+  # 成功标准
+  position_mae_threshold: 1.0  # 位置MAE阈值 (m)
+  depth_mae_threshold: 0.05   # 深度MAE阈值 (比例)
+  
+# ============================================
+# 输出路径 (Output Paths)
+# ============================================
+output:
+  data_dir: 'outputs/data'
+  model_dir: 'outputs/models'
+  figure_dir: 'outputs/figures'
+  report_dir: 'outputs/reports'

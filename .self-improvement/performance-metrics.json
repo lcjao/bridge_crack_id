@@ -1,0 +1,15 @@
+{
+  "metrics": {
+    "average_score": 0,
+    "total_tasks": 0,
+    "completion_rate": 0,
+    "improvement_trend": []
+  },
+  "task_types": {
+    "数据生成": { "count": 0, "avg_score": 0 },
+    "模型训练": { "count": 0, "avg_score": 0 },
+    "推理预测": { "count": 0, "avg_score": 0 },
+    "代码改进": { "count": 0, "avg_score": 0 }
+  },
+  "last_updated": null
+}
