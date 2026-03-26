@@ -41,6 +41,11 @@ class BridgeVehicleSystem:
                 return default
             if isinstance(val, (int, float)):
                 return float(val)
+            if isinstance(val, str):  # 处理YAML解析的科学计数法字符串
+                try:
+                    return float(val)
+                except (ValueError, TypeError):
+                    return default
             return default
 
         def to_int(val, default):
@@ -48,6 +53,11 @@ class BridgeVehicleSystem:
                 return default
             if isinstance(val, (int, float)):
                 return int(val)
+            if isinstance(val, str):  # 处理YAML解析的字符串
+                try:
+                    return int(val)
+                except (ValueError, TypeError):
+                    return default
             return default
 
         # 路面等级参数
@@ -58,7 +68,7 @@ class BridgeVehicleSystem:
         self.kv = to_float(self.params.get("kv", 170000), 170000)  # 车辆悬架刚度 (N/m)
         self.cv = to_float(self.params.get("cv", 1000), 1000)  # 车辆悬架阻尼 (N/(m/s))
         self.k_a = to_float(self.params.get("k_a", 170000), 170000)  # 车轴刚度 (N/m)
-        self.V = to_float(self.params.get("V", 10), 10)  # 车辆速度 (m/s)
+        self.V = to_float(self.params.get("V", 10), 5)  # 车辆速度 (m/s)
         self.g = 9.8  # 重力加速度 (m/s^2)
         self.fv = np.sqrt(self.kv / self.mv) / (2 * np.pi)  # 车辆固有频率 (Hz)
 

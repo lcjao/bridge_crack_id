@@ -12,7 +12,41 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from model.lstm import LSTMRegressor
-from data_pipeline.generator import SequenceWindowDataset
+
+# 可视化模块
+try:
+    from visualization.plots import TrainingPlotter, Evaluator
+
+    PLOT_AVAILABLE = True
+except ImportError as e:
+    print(f"警告: 无法导入可视化模块 - {e}")
+    PLOT_AVAILABLE = False
+    TrainingPlotter = None
+    Evaluator = None
+
+
+class SequenceWindowDataset(torch.utils.data.Dataset):
+    """序列窗口数据集"""
+
+    def __init__(self, X, y, seq_len=20, stride=10):
+        self.X = X
+        self.y = y
+        self.seq_len = seq_len
+        self.stride = stride
+        self.valid_indices = [
+            i
+            for i in range(0, len(X) - seq_len + 1, stride)
+            if not np.isnan(X[i : i + seq_len]).any()
+        ]
+
+    def __len__(self):
+        return len(self.valid_indices)
+
+    def __getitem__(self, idx):
+        i = self.valid_indices[idx]
+        return torch.FloatTensor(self.X[i : i + self.seq_len]), torch.FloatTensor(
+            self.y[i + self.seq_len - 1]
+        )
 
 
 # LSTM 训练使用的默认参数（用于旧 checkpoint 的 fallback）
@@ -66,19 +100,24 @@ def inference(args):
         data = np.load(args.input)
         keys = list(data.keys())
 
-        # 支持两种格式: 原始格式(X, y) 或 预处理格式(X_test, y_test)
+        # 支持多种格式: 原始格式(X, y), 预处理格式(X_test/y_test), 验证格式(X_val/y_val)
         if "X" in keys:
             X = data["X"]
             y_true = data.get("y", None)
-        else:
+        elif "X_test" in keys:
             X = data["X_test"]
             y_true = data.get("y_test", None)
+        elif "X_val" in keys:
+            X = data["X_val"]
+            y_true = data.get("y_val", None)
+        else:
+            raise ValueError(f"Unknown data format in {args.input}. Keys: {keys}")
 
         # 转置: (n_features, n_samples) -> (n_samples, n_features)
-        if X.shape[0] > X.shape[1]:
+        if X.shape[0] < X.shape[1]:
             X = X.T
         if y_true is not None and len(y_true.shape) > 1:
-            if y_true.shape[1] > y_true.shape[0]:
+            if y_true.shape[0] < y_true.shape[1]:
                 y_true = y_true.T
 
         input_dim = X.shape[1]
@@ -123,10 +162,11 @@ def inference(args):
         metrics = {}
         y_true_valid = None
         if y_true is not None and len(predictions) > 0:
-            seq_len = args.seq_len
-            stride = args.stride
-            valid_indices = list(range(0, len(X) - seq_len, stride))[: len(predictions)]
-            y_true_valid = np.array([y_true[i + seq_len] for i in valid_indices])
+            # 使用与 dataset 相同的 valid_indices
+            valid_indices = dataset.valid_indices
+            y_true_valid = np.array(
+                [y_true[i + args.seq_len - 1] for i in valid_indices]
+            )
 
             # 反归一化
             if y_mean is not None and y_std is not None:
@@ -235,6 +275,31 @@ def inference(args):
         if args.output:
             np.save(args.output, predictions_denorm_out)
             print(f"结果已保存: {args.output}")
+
+        # 绘制结果
+        if args.plot and PLOT_AVAILABLE:
+            figure_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "outputs/figures",
+            )
+            if not os.path.exists(figure_dir):
+                os.makedirs(figure_dir)
+
+            stats = {"y_mean": y_mean, "y_std": y_std}
+            y_true_norm = y_true_valid
+            y_pred_norm = predictions
+
+            # 预测散点图
+            scatter_path = os.path.join(figure_dir, "lstm_prediction_scatter.png")
+            TrainingPlotter.plot_prediction_scatter(
+                y_true_norm, y_pred_norm, stats, save_path=scatter_path
+            )
+
+            # 误差分布
+            error_path = os.path.join(figure_dir, "lstm_error_distribution.png")
+            Evaluator.plot_error_distribution(
+                y_true_norm, y_pred_norm, stats, save_path=error_path
+            )
     else:
         print("数据: (未提供)")
         print("-" * 50)
@@ -247,7 +312,8 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, required=True, help="模型路径")
     parser.add_argument("--input", type=str, help="输入CPDV数据路径")
     parser.add_argument("--output", type=str, help="输出预测结果路径")
-    parser.add_argument("--seq_len", type=int, default=8, help="序列长度")
+    parser.add_argument("--plot", action="store_true", help="是否绘制结果")
+    parser.add_argument("--seq_len", type=int, default=6, help="序列长度")
     parser.add_argument("--stride", type=int, default=2, help="滑动步长")
     parser.add_argument("--hidden_dim", type=int, default=128, help="隐藏层维度")
     parser.add_argument("--num_layers", type=int, default=2, help="LSTM层数")

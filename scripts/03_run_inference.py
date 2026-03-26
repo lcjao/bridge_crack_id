@@ -75,8 +75,8 @@ def main():
     print("加载测试数据...")
     data = np.load(args.input)
 
-    X_test = data["X_test"]
-    y_test = data["y_test"]
+    X_test = data["X_val"]  # 注意这里是 X_val 和 y_val，因为我们在训练时使用了验证集进行评估
+    y_test = data["y_val"]
 
     # 加载统计量
     if args.stats:

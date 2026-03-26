@@ -111,6 +111,123 @@ class SignalPlotter:
 
         plt.show()
 
+    @staticmethod
+    def plot_peak_position_vs_distance(
+        peak_positions: Dict,
+        title: str = "不同深度下CPDV峰值位置",
+        save_path: Optional[str] = None,
+        distances: list = None,
+    ):
+        """
+        绘制不同深度下CPDV峰值位置 vs 距离
+
+        Args:
+            peak_positions: {深度标签: [峰值位置数组]} 字典
+            title: 图表标题
+            save_path: 保存路径
+            distances: 距离列表，若为None则根据数据长度自动生成
+        """
+        plt.figure(figsize=(10, 6))
+
+        # 自动生成 distances 若未提供
+        if distances is None:
+            first_values = list(peak_positions.values())[0] if peak_positions else []
+            distances = list(range(1, len(first_values) + 1))
+
+        colors = ["turquoise", "darkblue", "lightblue", "red", "orange"]
+
+        for i, (depth_label, values) in enumerate(peak_positions.items()):
+            plt.plot(
+                distances[: len(values)],
+                values,
+                marker="o",
+                linewidth=2,
+                markersize=8,
+                color=colors[i % len(colors)],
+                label=depth_label,
+            )
+
+        plt.xlabel("距离 (m)")
+        plt.ylabel("CPDV峰值")
+        plt.title(title)
+
+        # 显示数据值
+        for i, (depth_label, values) in enumerate(peak_positions.items()):
+            for j, (x, y) in enumerate(zip(distances[: len(values)], values)):
+                plt.annotate(
+                    f"{y:.4f}",
+                    (x, y),
+                    textcoords="offset points",
+                    xytext=(0, 5),
+                    ha="center",
+                    fontsize=8,
+                )
+
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=150)
+            print(f"图表已保存至: {save_path}")
+
+        plt.show()
+
+    @staticmethod
+    def plot_peak_value_vs_depth(
+        peak_values: Dict,
+        depths: list,
+        title: str = "不同位置CPDV峰值 vs 裂纹深度",
+        save_path: Optional[str] = None,
+    ):
+        """
+        绘制不同位置CPDV峰值 vs 裂纹深度
+
+        Args:
+            peak_values: {位置标签: [峰值数组]} 字典
+            depths: 裂纹深度列表
+            title: 图表标题
+            save_path: 保存路径
+        """
+        plt.figure(figsize=(10, 6))
+
+        n_positions = len(peak_values)
+        n_depths = len(depths)
+        # 自动计算合适的柱状图宽度
+        if n_positions == 1:
+            bar_width = 0.6 / n_positions  # 单系列时较宽
+        elif n_positions <= 3:
+            bar_width = 0.5 / n_positions  # 2-3系列适中
+        else:
+            bar_width = 0.4 / n_positions  # 多系列时较窄
+
+        colors = ["darkblue", "blue", "teal", "red", "orange"]
+        positions = list(peak_values.keys())
+
+        for i, (pos_label, values) in enumerate(peak_values.items()):
+            x = np.arange(n_depths) + i * bar_width
+            plt.bar(
+                x,
+                values,
+                bar_width,
+                label=pos_label,
+                color=colors[i % len(colors)],
+            )
+
+        plt.xlabel("裂纹深度")
+        plt.ylabel("CPDV峰值")
+        plt.title(title)
+        plt.xticks(np.arange(n_depths) + bar_width, depths)
+        plt.legend()
+        plt.grid(True, axis="y")
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=150)
+            print(f"图表已保存至: {save_path}")
+
+        plt.show()
+
 
 class TrainingPlotter:
     """训练过程可视化"""

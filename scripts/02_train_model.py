@@ -87,8 +87,8 @@ def train(args):
             )
 
     # 保存
-    # os.makedirs(os.path.dirname(args.model), exist_ok=True)
-    # model.save(args.model)
+    os.makedirs(os.path.dirname(args.model), exist_ok=True)
+    model.save(args.model)
 
     # print(f"\n模型已保存: {args.model}")
 
